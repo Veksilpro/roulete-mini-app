@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Рулетка</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            background: radial-gradient(circle at center, #1a0000 0%, #050505 100%);
+            color: white;
+            font-family: 'Montserrat', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            user-select: none;
+        }
+        .wheel-container {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin-bottom: 20px;
+        }
+        .wheel {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 10px solid #c20000;
+            background: conic-gradient(#c20000 0deg 180deg, #111 180deg 360deg);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 4rem;
+            transition: transform 4s cubic-bezier(0.25, 0.1, 0.25, 1);
+            box-shadow: 0 0 30px rgba(194,0,0,0.5);
+        }
+        .result {
+            font-size: 2rem;
+            font-weight: 900;
+            color: #c20000;
+            height: 40px;
+            margin: 10px 0;
+            text-shadow: 0 0 15px #c20000;
+        }
+        .bet-input {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .bet-input input {
+            background: #111;
+            border: 1px solid #333;
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            width: 150px;
+            text-align: center;
+            outline: none;
+        }
+        .bet-input input:focus { border-color: #c20000; }
+        .buttons {
+            display: flex;
+            gap: 15px;
+        }
+        button {
+            background: #c20000;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover { background: #e60000; }
+        button:disabled { background: #333; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+    <div class="result" id="result"></div>
+    <div class="wheel-container">
+        <div class="wheel" id="wheel">🎰</div>
+    </div>
+    
+    <div class="bet-input">
+        <input type="number" id="betAmount" placeholder="Ставка" value="10" min="1">
+    </div>
+
+    <div class="buttons">
+        <button id="redBtn" onclick="spin('red')">КРАСНОЕ</button>
+        <button id="blackBtn" onclick="spin('black')">ЧЕРНОЕ</button>
+    </div>
+
+    <script>
+        let tg = window.Telegram.WebApp;
+        tg.ready();
+
+        let spinning = false;
+        let currentRotation = 0;
+
+        function spin(color) {
+            if (spinning) return;
+            spinning = true;
+            
+            const bet = parseInt(document.getElementById('betAmount').value) || 10;
+            const resultEl = document.getElementById('result');
+            const wheel = document.getElementById('wheel');
+            
+            document.getElementById('redBtn').disabled = true;
+            document.getElementById('blackBtn').disabled = true;
+            resultEl.innerText = 'Крутим...';
+
+            // Случайный сектор (0 - красное, 1 - черное)
+            const sector = Math.floor(Math.random() * 2);
+            const isRed = sector === 0;
+            
+            // Вращение (минимум 5 кругов)
+            const targetRotation = currentRotation + (360 * 5) + (isRed ? 0 : 180);
+            currentRotation = targetRotation;
+            
+            wheel.style.transform = `rotate(${targetRotation}deg)`;
+
+            setTimeout(() => {
+                spinning = false;
+                document.getElementById('redBtn').disabled = false;
+                document.getElementById('blackBtn').disabled = false;
+                
+                if ((color === 'red' && isRed) || (color === 'black' && !isRed)) {
+                    let win = bet * 2;
+                    resultEl.innerText = `🏆 ПОБЕДА! +${win} ⭐`;
+                    tg.sendData(JSON.stringify({ action: "win", amount: win, bet: bet }));
+                } else {
+                    resultEl.innerText = '💀 ПРОИГРЫШ';
+                    tg.sendData(JSON.stringify({ action: "lose", bet: bet }));
+                }
+            }, 4100);
+        }
+    </script>
+</body>
+</html>
